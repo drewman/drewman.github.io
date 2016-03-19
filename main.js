@@ -53,7 +53,7 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
           .attr("x", width)
           .attr("y", -6)
           .style("text-anchor", "end")
-          .text("x-axis");
+          .text("Sound Level");
 
     svg.append("g")
         .attr("class", "y axis")
@@ -64,7 +64,7 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
         .attr("y", 6)
         .attr("dy", ".71em")
         .style("text-anchor", "end")
-        .text("y-axis");
+        .text("Duration");
 
     var legend = svg.append("g")
         .attr("class", "legend")
