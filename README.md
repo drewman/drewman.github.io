@@ -1,6 +1,6 @@
 Notes about our project:
 * Our group final project is deployed on: http://drewman.github.io/dashboard.html
-* Our codebase will be submitted on canvas but is also available at: https://github.com/drewman/drewman.github.
+* Our codebase will be submitted on canvas but is also available at: https://github.com/drewman/drewman.github.io
 * We have a sparkStreaming script, publisher.py, that takes the mqtt sound durations data, computes some statistics, and publishes the computed stats.
     * This script requires the paho-mqtt package
     * That script is running continuously on our raspberry pi cluster
