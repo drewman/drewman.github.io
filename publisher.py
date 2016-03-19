@@ -77,5 +77,5 @@ batch.foreachRDD(lambda rdd: (get_json(rdd.collect())))
 publish.single("cis/statistics", json.dumps({ 'clear': True }), hostname='test.mosquitto.org', port=1883);
 
 ssc.start()
-ssc.awaitTerminationOrTimeout(50)
+ssc.awaitTermination()
 ssc.stop()

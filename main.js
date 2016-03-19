@@ -22,6 +22,14 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
         .domain([1, 4])
         .range(["red", "blue", "green", "yellow"]);
 
+    var color_hash = {
+        1: ["kmean1", "red"],
+        2: ["kmean2", "green"],
+        3: ["kmean3", "purple"],
+        4: ["kmean4", "blue"],
+        5: ["centroid", "green"]
+    };
+
     var xAxis = d3.svg.axis()
         .scale(x)
         .orient("bottom");
@@ -58,6 +66,13 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
         .style("text-anchor", "end")
         .text("y-axis");
 
+    var legend = svg.append("g")
+        .attr("class", "legend")
+        .attr("x", width - 65)
+        .attr("y", 25)
+        .attr("height", 100)
+        .attr("width", 100);
+
     /* setup a streaming mqtt client to plot data as it comes in 
        code copied from example: https://eclipse.org/paho/clients/js/ */
     client = new Paho.MQTT.Client("test.mosquitto.org", 8080, "testWebClient");
@@ -85,17 +100,19 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
 
     // called when a message arrives
     function onMessageArrived(message) {
-        //console.log("onMessageArrived:"+message.payloadString);
         dataSet = JSON.parse(message.payloadString);
 
-        svg.selectAll(".kmeans").remove();
-        svg.selectAll(".centroid").remove();
-
         if (dataSet.clear) {
-            console.log('CLEARED')
+            console.log('***STREAM STARTING***');
             svg.selectAll(".dot").remove();
             return;
         }
+
+        console.log("onMessageArrived:"+message.payloadString);
+
+        svg.selectAll(".kmeans").remove();
+        svg.selectAll(".centroid").remove();
+        svg.selectAll(".legend-text").remove();
 
         /* add dots for all data values */
         svg.selectAll(".dot")
@@ -117,6 +134,49 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
             clean_kmeans_centers.push(center);
         }
 
+        /* Add legend */
+        legend.selectAll('g').data(clean_kmeans_centers)
+          .enter()
+          .append('g')
+          .attr("class", "legend-text")
+          .each(function(d, i) {
+              var g = d3.select(this);
+              g.append("rect")
+                .attr("x", width - 270)
+                .attr("y", i * 25)
+                .attr("width", 10)
+                .attr("height", 10)
+                .style("fill", color_hash[d.id][1]);
+        
+              g.append("text")
+                .attr("x", width - 255)
+                .attr("y", i * 25 + 8)
+                .attr("height",30)
+                .attr("width",100)
+                .style("fill", color_hash[d.id][1])
+                .text(color_hash[d.id][0] + ": (" + d.x + ", " + d.y + ")");
+          });
+
+        legend.selectAll('g.legend-text').data([dataSet.centroid])
+          .each(function(d, i) {
+              var g = d3.select(this);
+              g.append("rect")
+                .attr("x", width - 270)
+                .attr("y", 4 * 25)
+                .attr("width", 10)
+                .attr("height", 10)
+                .style("fill", color_hash[5][1])
+                .style("opacity", ".2");
+        
+              g.append("text")
+                .attr("x", width - 255)
+                .attr("y", 4 * 25 + 8)
+                .attr("height",30)
+                .attr("width",100)
+                .style("fill", color_hash[5][1])
+                .text(color_hash[5][0] + ": (" + d[0] + ", " + d[1] + ")");
+          });
+
         /* add dots for kmeans */
         svg.selectAll(".kmeans")
             .data(clean_kmeans_centers, function(d) { return d.id; })
@@ -126,7 +186,7 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
             .attr("r", 10)
             .attr("cx", function(d) { return x(d.x); })
             .attr("cy", function(d) { return y(d.y); })
-            .style("fill", function(d) { return colors(d.id); });
+            .style("fill", function(d) { return color_hash[d.id][1]; });
 
         /* add giant semi-transparent dot for centroid */
         svg.selectAll(".centroid")
@@ -137,7 +197,7 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
             .attr("r", 50)
             .attr("cx", function(d) { return x(d[0]); })
             .attr("cy", function(d) { return y(d[1]); })
-            .style("fill", "green")
+            .style("fill", color_hash[5][1])
             .style("opacity", ".2");
     }
 });
