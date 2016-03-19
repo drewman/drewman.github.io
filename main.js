@@ -12,11 +12,11 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
 
     var x = d3.scale.linear()
         .range([0, width])
-        .domain([110, 135]);
+        .domain([114, 135]);
 
     var y = d3.scale.linear()
         .range([height, 0])
-        .domain([0, 0.001]);
+        .domain([0, 0.0009]);
 
     var colors = d3.scale.linear()
         .domain([1, 4])
@@ -58,7 +58,8 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
         .style("text-anchor", "end")
         .text("y-axis");
 
-    /* setup a streaming mqtt client to plot data as it comes in */
+    /* setup a streaming mqtt client to plot data as it comes in 
+       code copied from example: https://eclipse.org/paho/clients/js/ */
     client = new Paho.MQTT.Client("test.mosquitto.org", 8080, "testWebClient");
 
     // set callback handlers
@@ -84,12 +85,19 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
 
     // called when a message arrives
     function onMessageArrived(message) {
-        console.log("onMessageArrived:"+message.payloadString);
+        //console.log("onMessageArrived:"+message.payloadString);
         dataSet = JSON.parse(message.payloadString);
 
         svg.selectAll(".kmeans").remove();
         svg.selectAll(".centroid").remove();
 
+        if (dataSet.clear) {
+            console.log('CLEARED')
+            svg.selectAll(".dot").remove();
+            return;
+        }
+
+        /* add dots for all data values */
         svg.selectAll(".dot")
             .data(dataSet.values, function(d) { return d[0] + d[1]; })
           .enter().append("circle")
@@ -98,6 +106,7 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
             .attr("cx", function(d) { return x(d[0]); })
             .attr("cy", function(d) { return y(d[1]); });
 
+        /* clean kmeans data */
         clean_kmeans_centers = [];
         for(var key in dataSet.kmeans_centers) {
             center = {
@@ -107,6 +116,8 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
             };
             clean_kmeans_centers.push(center);
         }
+
+        /* add dots for kmeans */
         svg.selectAll(".kmeans")
             .data(clean_kmeans_centers, function(d) { return d.id; })
           .enter().append("circle")
@@ -116,6 +127,8 @@ require(['d3', 'Paho-mqtt'], function(d3, Paho) {
             .attr("cx", function(d) { return x(d.x); })
             .attr("cy", function(d) { return y(d.y); })
             .style("fill", function(d) { return colors(d.id); });
+
+        /* add giant semi-transparent dot for centroid */
         svg.selectAll(".centroid")
             .data([dataSet.centroid])
           .enter().append("circle")

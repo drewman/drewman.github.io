@@ -1,7 +1,7 @@
 #imports
 import json, math
 from functools import reduce
-import paho.mqtt.publish as publish
+from paho.mqtt import publish as publish
 
 import pyspark
 if not dir().count('sc'): sc = pyspark.SparkContext(appName="Final Project")
@@ -12,7 +12,7 @@ from pyspark.streaming.mqtt import MQTTUtils
 ssc = StreamingContext(sc, 1)               #For Streaming
 ssc.checkpoint("checkpoint")
 
-C = {1:[120.0, 0.0005], 2:[122.5, 0.0005], 3:[125.5, 0.0005], 4:[128.0, 0.0005]} #k=4       #For Kmeans
+C = {1:[120.0, 0.0007], 2:[122.5, 0.0001], 3:[125.5, 0.0005], 4:[128.0, 0.0004]} #k=4       #For Kmeans
 v = {1:0, 2:0, 3:0, 4:0}
 
 def statistics( rdd ):                                            #mean and variance
@@ -60,16 +60,13 @@ def get_json( rdd ):                                               #Prints json 
         print('Kmeans centers:')
         print(C)
         json_dict = json.dumps({'values':rdd, 'centroid':mean_var[0], 'variance':mean_var[1], 'kmeans_centers':C}) 
-        #publish.single("cis/statistics", json_dict, hostname='test.mosquitto.org', port=8080);         #Publishes json dict
-        publish.single("cis/statistics", json_dict, hostname='tcp://brix.d.cs.uoregon.edu', port=8100)
+        publish.single("cis/statistics", json_dict, hostname='test.mosquitto.org', port=1883);         #Publishes json dict
         print('Json object published....')
-		
+
 brokerUrl = "tcp://brix.d.cs.uoregon.edu:8100"
 topic = "cis/soundtest/preprocessed"
 
 mqttStream = MQTTUtils.createStream(ssc, brokerUrl, topic)
-
-
 
 batch = mqttStream.map(lambda message: message.split(", ")) \
     .map(lambda x : tuple(map(lambda num : float(num),x))) 
@@ -77,5 +74,8 @@ batch = mqttStream.map(lambda message: message.split(", ")) \
 batch.pprint()
 batch.foreachRDD(lambda rdd: (get_json(rdd.collect())))
 
+publish.single("cis/statistics", json.dumps({ 'clear': True }), hostname='test.mosquitto.org', port=1883);
+
 ssc.start()
-ssc.awaitTermination()
+ssc.awaitTerminationOrTimeout(50)
+ssc.stop()
